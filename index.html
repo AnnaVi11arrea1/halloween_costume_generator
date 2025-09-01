@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halloween AI Costume Designer</title>
+    <style>
+        :root {
+            --background-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #ff7518;
+            /* Halloween Orange */
+            --on-primary-color: #000;
+            --on-surface-color: #e1e1e1;
+            --border-color: #333;
+            --error-color: #cf6679;
+            --user-message-bg: var(--primary-color);
+            --ai-message-bg: var(--surface-color);
+            --upvote-color: #4CAF50;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--on-surface-color);
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background-color: var(--background-color);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3e%3cpath fill='rgba(255, 255, 255, 0.02)' d='M192.8,92.2L105,4.7c-2.3-2.5-6.2-2.5-8.5,0L8,92.2c-1.5,1.7-2.1,4-1.5,6.2l12,41.9c0.6,2.2,2.5,3.7,4.8,3.7h2.8l26-15.1v108.4c0,5.5,4.5,10,10,10h100c5.5,0,10-4.5,10-10V128.9l26,15.1h2.8c2.3,0,4.2-1.5,4.8-3.7l12-41.9C194.9,96.2,194.3,93.9,192.8,92.2z M135,177.3h-20v-20c0-2.8-2.2-5-5-5s-5,2.2-5,5v20h-20c-2.8,0-5,2.2-5,5s2.2,5,5,5h50c2.8,0,5-2.2,5-5S137.8,177.3,135,177.3z M145,152.3h-50c-2.8,0-5-2.2-5-5s2.2-5,5-5h50c2.8,0,5,2.2,5,5S147.8,152.3,145,152.3z M145,127.3h-50c-2.8,0-5-2.2-5-5s2.2-5,5-5h50c2.8,0,5,2.2,5,5S147.8,127.3,145,127.3z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: bottom center;
+            background-size: 80% auto;
+        }
+
+        header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header-content {
+            text-align: left;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        header p {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-top: 0.25rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-btn {
+            background: var(--surface-color);
+            color: var(--on-surface-color);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+
+        .nav-btn.active {
+            background-color: var(--primary-color);
+            color: var(--on-primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .nav-btn:not(.active):hover {
+            background-color: #333;
+        }
+
+        .view {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        #chat-view {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        #chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem 1rem;
+        }
+
+        #message-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+            padding: 0.75rem 1rem;
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+
+        .user-message {
+            background-color: var(--user-message-bg);
+            color: var(--on-primary-color);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message {
+            background-color: var(--ai-message-bg);
+            color: var(--on-surface-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.3s;
+        }
+
+        .image-container:hover img {
+            transform: scale(1.05);
+        }
+
+        .image-number {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 4px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        .image-actions {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .image-container:hover .image-actions {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .image-actions button {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .image-actions button:hover {
+            background-color: white;
+            transform: scale(1.1);
+        }
+
+        .image-actions button.saved,
+        .image-actions button.shared {
+            background-color: var(--primary-color);
+        }
+
+        .image-actions button.saved svg,
+        .image-actions button.shared svg {
+            fill: white;
+        }
+
+        .image-actions svg {
+            width: 18px;
+            height: 18px;
+            fill: #333;
+        }
+
+        #chat-form {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--background-color);
+            align-items: center;
+        }
+
+        .input-controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            background-color: var(--surface-color);
+            padding: 0.2rem 0.6rem;
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-group label {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .control-group input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .control-group input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .control-group input[type="color"]::-webkit-color-swatch {
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+        }
+
+        .control-group input[type="color"]::-moz-color-swatch {
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+        }
+
+        #image-count-input {
+            width: 30px;
+            background: none;
+            border: none;
+            color: var(--on-surface-color);
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        /* Hide number input arrows */
+        #image-count-input::-webkit-outer-spin-button,
+        #image-count-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #image-count-input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        #prompt-input {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            color: var(--on-surface-color);
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #prompt-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        #send-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            flex-shrink: 0;
+        }
+
+        #send-btn svg {
+            fill: var(--on-primary-color);
+            width: 24px;
+            height: 24px;
+        }
+
+        #send-btn:hover:not(:disabled) {
+            background-color: #e66a16;
+        }
+
+        #send-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        #send-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        .loader {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* --- Gallery & World Favorites Views --- */
+        #gallery-view,
+        #world-favorites-view {
+            padding: 1.5rem;
+            display: none;
+            /* Initially hidden */
+        }
+
+        #gallery-grid,
+        #world-favorites-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        #gallery-grid .image-container:hover .image-actions,
+        #world-favorites-grid .world-image-card:hover .image-actions {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .view-placeholder {
+            text-align: center;
+            padding: 3rem;
+            color: #aaa;
+        }
+
+        .world-image-card {
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .world-image-card .image-container {
+            border-radius: 0;
+        }
+
+        .card-info {
+            padding: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-info .username {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .upvote-action {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .upvote-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--on-surface-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        .upvote-btn.voted {
+            background-color: var(--upvote-color);
+            border-color: var(--upvote-color);
+            color: white;
+        }
+
+        .upvote-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: currentcolor;
+        }
+
+        .upvote-count {
+            font-weight: bold;
+        }
+
+        /* --- Modals --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background-color: var(--surface-color);
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 1rem;
+        }
+
+        .modal-content p {
+            margin-bottom: 1.5rem;
+            color: #aaa;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            background-color: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--on-surface-color);
+        }
+
+        .consent-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .modal-btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .modal-btn-primary {
+            background-color: var(--primary-color);
+            color: var(--on-primary-color);
+        }
+
+        .modal-btn-secondary {
+            background-color: var(--border-color);
+            color: var(--on-surface-color);
+        }
+
+        #lightbox-image {
+            max-width: 90%;
+            max-height: 85%;
+            border-radius: 8px;
+        }
+
+        #lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .header-content {
+                text-align: center;
+            }
+
+            .nav-buttons {
+                justify-content: center;
+            }
+
+            #chat-form {
+                flex-wrap: wrap;
+            }
+
+            #prompt-input {
+                order: 1;
+                flex-basis: 100%;
+            }
+
+            .input-controls {
+                order: 2;
+            }
+
+            #send-btn {
+                order: 3;
+            }
+        }
+    </style>
+    <script type="importmap">
+{
+"imports": {
+  "openai": "https://esm.sh/openai@4.20.0"
+}
+}
+</script>
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <div class="header-content">
+                <h1>Halloween AI Costume Designer</h1>
+                <p id="user-status">Chat with the AI to create and refine your perfect costume.</p>
+            </div>
+            <div class="nav-buttons">
+                <button id="chat-view-btn" class="nav-btn active" aria-label="Switch to chat view">Chat</button>
+                <button id="gallery-view-btn" class="nav-btn" aria-label="Switch to gallery view">My Gallery</button>
+                <button id="world-view-btn" class="nav-btn" aria-label="Switch to World Favorites view">World
+                    Favorites</button>
+            </div>
+        </header>
+
+        <div id="chat-view" class="view">
+            <div id="chat-container">
+                <div id="message-list">
+                    <!-- Messages will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <form id="chat-form" aria-label="Chat input form">
+                <div class="input-controls">
+                    <div class="control-group">
+                        <label for="top-color-input" aria-label="Top color">Top</label>
+                        <input type="color" id="top-color-input" value="#ff7518">
+                    </div>
+                    <div class="control-group">
+                        <label for="bottom-color-input" aria-label="Bottom color">Bottom</label>
+                        <input type="color" id="bottom-color-input" value="#121212">
+                    </div>
+                    <div class="control-group">
+                        <label for="image-count-input" aria-label="Number of images">#</label>
+                        <input type="number" id="image-count-input" min="1" max="4" value="4">
+                    </div>
+                </div>
+                <input type="text" id="prompt-input" placeholder="e.g., 'a vampire costume'..." required
+                    aria-label="Costume idea prompt">
+                <button type="submit" id="send-btn" aria-label="Send message">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+
+        <div id="gallery-view" class="view" style="display: none;">
+            <div id="gallery-grid">
+                <!-- Saved images will be dynamically inserted here -->
+            </div>
+            <div id="gallery-placeholder" class="view-placeholder" style="display: none;">
+                <h2>No Saved Ideas Yet</h2>
+                <p>Your saved costume ideas will appear here.</p>
+            </div>
+        </div>
+
+        <div id="world-favorites-view" class="view" style="display: none;">
+            <div id="world-favorites-grid">
+                <!-- World favorite images will be dynamically inserted here -->
+            </div>
+            <div id="world-favorites-placeholder" class="view-placeholder" style="display: none;">
+                <h2>The World's Favorites</h2>
+                <p>Popular costume ideas shared by the community will appear here.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="lightbox-modal" class="modal-overlay">
+        <span id="lightbox-close">&times;</span>
+        <img id="lightbox-image" src="" alt="Enlarged costume view">
+    </div>
+
+    <div id="share-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Share to World Favorites</h2>
+            <p>Enter a username to be displayed with your creation. Your image will be visible to other users.</p>
+            <input type="text" id="share-username-input" class="modal-input" placeholder="Your Username" maxlength="20">
+            <div class="consent-group">
+                <input type="checkbox" id="share-consent-checkbox">
+                <label for="share-consent-checkbox">I agree to share this image publicly.</label>
+            </div>
+            <div class="modal-actions">
+                <button id="share-cancel-btn" class="modal-btn modal-btn-secondary">Cancel</button>
+                <button id="share-confirm-btn" class="modal-btn modal-btn-primary">Share</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="index.tsx"></script>
+</body>
+
+</html>

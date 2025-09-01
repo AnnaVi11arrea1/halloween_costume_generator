@@ -1,0 +1,6 @@
+{
+    "description": "An AI-powered Halloween costume designer that allows users to create and refine costume ideas through an interactive chat interface.",
+    "prompt": "Create a chat application where a user can describe a Halloween costume. The user can then refine the costume by sending more messages, like 'make the cape longer' or 'change the top color to blue'. The AI should generate four new images with each refinement.",
+    "requestFramePermissions": [],
+    "name": "Halloween Costume Generator"
+}
